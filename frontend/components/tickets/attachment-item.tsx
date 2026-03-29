@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { formatFileSize } from '@/lib/utils';
-import type { Attachment } from '@/types';
-import { FileText, Image as ImageIcon, Download, Trash2, Eye } from 'lucide-react';
-import { AttachmentPreview } from './attachment-preview';
+import { useState } from "react";
+import { formatFileSize } from "@/lib/utils";
+import type { Attachment } from "@/types";
+import {
+  FileText,
+  Image as ImageIcon,
+  Download,
+  Trash2,
+  Eye,
+} from "lucide-react";
+import { AttachmentPreview } from "./attachment-preview";
 
 interface AttachmentItemProps {
   attachment: Attachment;
@@ -12,12 +18,15 @@ interface AttachmentItemProps {
   apiUrl?: string;
 }
 
-export function AttachmentItem({ attachment, onDelete, apiUrl }: AttachmentItemProps) {
-  const isImage = attachment.mime_type.startsWith('image/');
-  const isPdf = attachment.mime_type === 'application/pdf';
+export function AttachmentItem({
+  attachment,
+  onDelete,
+  apiUrl,
+}: AttachmentItemProps) {
+  const isImage = attachment.mime_type.startsWith("image/");
+  const isPdf = attachment.mime_type === "application/pdf";
   const canPreview = isImage || isPdf;
-  const downloadUrl = `${apiUrl || '/api'}/attachments/${attachment.id}/download`;
-
+  const downloadUrl = `${apiUrl || "/api"}/attachments/${attachment.id}/download`;
 
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -25,7 +34,9 @@ export function AttachmentItem({ attachment, onDelete, apiUrl }: AttachmentItemP
     <>
       <div
         className={`flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${
-          canPreview ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors' : ''
+          canPreview
+            ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+            : ""
         }`}
         onClick={canPreview ? () => setPreviewOpen(true) : undefined}
       >
@@ -46,7 +57,10 @@ export function AttachmentItem({ attachment, onDelete, apiUrl }: AttachmentItemP
             {formatFileSize(attachment.file_size)}
           </p>
         </div>
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
           {canPreview && (
             <button
               onClick={() => setPreviewOpen(true)}
