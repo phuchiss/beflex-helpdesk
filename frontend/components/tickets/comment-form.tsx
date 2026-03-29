@@ -29,9 +29,7 @@ export function CommentForm({ ticketId, onSuccess }: CommentFormProps) {
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await api.post<Attachment>('/attachments', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const res = await api.post<Attachment>('/attachments', formData);
         setAttachments(prev => [...prev, res.data]);
       }
     } catch (err: unknown) {
