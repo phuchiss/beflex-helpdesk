@@ -12,7 +12,7 @@ interface AttachmentItemProps {
 
 export function AttachmentItem({ attachment, onDelete, apiUrl }: AttachmentItemProps) {
   const isImage = attachment.mime_type.startsWith('image/');
-  const downloadUrl = `${apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'}/attachments/${attachment.id}/download`;
+  const downloadUrl = `${apiUrl || '/api'}/attachments/${attachment.id}/download`;
 
   return (
     <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
