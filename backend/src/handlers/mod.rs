@@ -1,4 +1,4 @@
-use axum::{Router, middleware, routing::{get, post, put, delete}};
+use axum::{Router, extract::DefaultBodyLimit, middleware, routing::{get, post, put, delete}};
 use crate::AppState;
 
 pub mod auth;
@@ -55,6 +55,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/projects/:id", put(projects::update_project).delete(projects::delete_project))
         .route("/dashboard/stats", get(dashboard::get_stats))
         .route("/reports", get(reports::get_report))
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(middleware::from_fn_with_state(state.clone(), crate::middleware::auth::require_auth));
 
     Router::new()
