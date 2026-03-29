@@ -28,7 +28,7 @@ export function Markdown({ content, className }: MarkdownProps) {
           );
         },
         pre: ({ children }) => <pre className="overflow-x-auto rounded-lg bg-gray-100 dark:bg-gray-800 p-3">{children}</pre>,
-        img: ({ ...props }) => <img {...props} className="rounded-lg max-w-full" />,
+        img: ({ alt, ...props }) => <img {...props} alt={alt || ''} className="rounded-lg max-w-full" />,
         table: ({ children }) => <table className="border-collapse border border-gray-300 dark:border-gray-700 w-full">{children}</table>,
         th: ({ children }) => <th className="border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-left text-sm font-medium">{children}</th>,
         td: ({ children }) => <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm">{children}</td>,
