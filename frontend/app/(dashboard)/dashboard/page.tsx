@@ -6,7 +6,7 @@ import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityBadge } from '@/components/tickets/ticket-badge';
 import type { DashboardStats } from '@/types';
-import { Ticket, CheckCircle, Clock, AlertCircle, BarChart3 } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, BarChart3 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useQuery<DashboardStats>({
