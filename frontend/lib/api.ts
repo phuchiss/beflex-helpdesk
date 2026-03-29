@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const isServer = typeof window === 'undefined';
+const API_URL = isServer
+  ? (process.env.INTERNAL_API_URL || 'http://backend:3001')
+  : '/api';
 
 export const api = axios.create({
   baseURL: API_URL,
