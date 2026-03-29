@@ -16,7 +16,8 @@ export function AttachmentItem({ attachment, onDelete, apiUrl }: AttachmentItemP
   const isImage = attachment.mime_type.startsWith('image/');
   const isPdf = attachment.mime_type === 'application/pdf';
   const canPreview = isImage || isPdf;
-  const downloadUrl = `${apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'}/attachments/${attachment.id}/download`;
+  const downloadUrl = `${apiUrl || '/api'}/attachments/${attachment.id}/download`;
+
 
   const [previewOpen, setPreviewOpen] = useState(false);
 
