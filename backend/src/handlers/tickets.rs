@@ -173,6 +173,13 @@ pub async fn update_ticket(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Ticket {} not found", id)))?;
 
+    // Only admin or the ticket creator can edit
+    let is_admin = claims.role == "admin";
+    let is_requester = old.requester_id == Some(claims.sub);
+    if !is_admin && !is_requester {
+        return Err(AppError::Forbidden("Only admin or ticket creator can edit".to_string()));
+    }
+
     let resolved_at = if body.status.as_deref() == Some("resolved") && old.resolved_at.is_none() {
         Some(Utc::now())
     } else {

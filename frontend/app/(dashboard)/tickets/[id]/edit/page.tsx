@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { getStoredUser } from '@/lib/auth';
 import type { Ticket, Category, User, Project, ApiListResponse } from '@/types';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -99,6 +100,15 @@ export default function EditTicketPage() {
     }
   };
 
+  const currentUser = typeof window !== 'undefined' ? getStoredUser() : null;
+  const canEditTicket = currentUser?.role === 'admin' || currentUser?.id === ticket?.requester_id;
+
+  useEffect(() => {
+    if (ticket && !canEditTicket) {
+      router.push(`/tickets/${ticketId}`);
+    }
+  }, [ticket, canEditTicket, router, ticketId]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -107,7 +117,7 @@ export default function EditTicketPage() {
     );
   }
 
-  if (!ticket) {
+  if (!ticket || !canEditTicket) {
     return <div className="text-center py-12 text-gray-500 dark:text-gray-400">Ticket not found</div>;
   }
 

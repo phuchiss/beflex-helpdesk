@@ -50,6 +50,7 @@ export default function TicketDetailPage() {
 
   const currentUser = typeof window !== 'undefined' ? getStoredUser() : null;
   const canDeleteTicket = currentUser?.role === 'admin' || currentUser?.role === 'agent';
+  const canEditTicket = currentUser?.role === 'admin' || currentUser?.id === ticket?.requester_id;
 
   const [deleteTicketDialogOpen, setDeleteTicketDialogOpen] = useState(false);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
@@ -110,13 +111,15 @@ export default function TicketDetailPage() {
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{ticket.subject}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href={`/tickets/${ticketId}/edit`}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-          >
-            <Edit className="h-4 w-4" />
-            Edit
-          </Link>
+          {canEditTicket && (
+            <Link
+              href={`/tickets/${ticketId}/edit`}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Link>
+          )}
           {canDeleteTicket && (
             <button
               onClick={() => setDeleteTicketDialogOpen(true)}
@@ -194,18 +197,22 @@ export default function TicketDetailPage() {
         <div className="space-y-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Status</h3>
-            <Select value={ticket.status} onValueChange={(v) => updateStatusMutation.mutate(v)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(s => (
-                  <SelectItem key={s} value={s}>
-                    {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {canEditTicket ? (
+              <Select value={ticket.status} onValueChange={(v) => updateStatusMutation.mutate(v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(s => (
+                    <SelectItem key={s} value={s}>
+                      {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <StatusBadge value={ticket.status} />
+            )}
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-3">
