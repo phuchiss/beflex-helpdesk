@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { getStoredUser } from '@/lib/auth';
 import type { Ticket, Category, User, Project, ApiListResponse } from '@/types';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +25,7 @@ export default function EditTicketPage() {
   const [categoryId, setCategoryId] = useState('');
   const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [initialized, setInitialized] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,7 +62,7 @@ export default function EditTicketPage() {
   });
 
   useEffect(() => {
-    if (ticket) {
+    if (ticket && !initialized) {
       setSubject(ticket.subject);
       setDescription(ticket.description ?? '');
       setStatus(ticket.status);
@@ -69,8 +71,9 @@ export default function EditTicketPage() {
       setCategoryId(ticket.category_id ?? '');
       setAssigneeId(ticket.assignee_id ?? '');
       setDueDate(ticket.due_date ? ticket.due_date.split('T')[0] : '');
+      setInitialized(true);
     }
-  }, [ticket]);
+  }, [ticket, initialized]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +102,16 @@ export default function EditTicketPage() {
     }
   };
 
-  if (isLoading) {
+  const currentUser = typeof window !== 'undefined' ? getStoredUser() : null;
+  const canEditTicket = currentUser?.role === 'admin' || currentUser?.id === ticket?.requester_id;
+
+  useEffect(() => {
+    if (ticket && !canEditTicket) {
+      router.push(`/tickets/${ticketId}`);
+    }
+  }, [ticket, canEditTicket, router, ticketId]);
+
+  if (isLoading || !initialized) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -107,7 +119,7 @@ export default function EditTicketPage() {
     );
   }
 
-  if (!ticket) {
+  if (!ticket || !canEditTicket) {
     return <div className="text-center py-12 text-gray-500 dark:text-gray-400">Ticket not found</div>;
   }
 
