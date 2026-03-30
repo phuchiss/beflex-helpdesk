@@ -61,6 +61,31 @@ export default function EditTicketPage() {
     },
   });
 
+  const currentUser = typeof window !== 'undefined' ? getStoredUser() as User | null : null;
+
+  const { data: userProjectsData } = useQuery<ApiListResponse<Project>>({
+    queryKey: ['user-projects', currentUser?.id],
+    queryFn: async () => {
+      const res = await api.get(`/users/${currentUser!.id}/projects`);
+      return res.data;
+    },
+    enabled: !!currentUser?.id,
+  });
+
+  const availableProjects = (() => {
+    const userProjects = userProjectsData?.data;
+    if (userProjects && userProjects.length > 0) {
+      const userProjectIds = new Set(userProjects.map(p => p.id));
+      const filtered = userProjects.filter(p => p.is_active);
+      if (ticket?.project_id && !userProjectIds.has(ticket.project_id)) {
+        const currentProject = projectsData?.data?.find(p => p.id === ticket.project_id);
+        if (currentProject) filtered.push(currentProject);
+      }
+      return filtered;
+    }
+    return projectsData?.data?.filter(p => p.is_active) ?? [];
+  })();
+
   useEffect(() => {
     if (ticket && !initialized) {
       setSubject(ticket.subject);
@@ -102,7 +127,6 @@ export default function EditTicketPage() {
     }
   };
 
-  const currentUser = typeof window !== 'undefined' ? getStoredUser() : null;
   const canEditTicket = currentUser?.role === 'admin' || currentUser?.id === ticket?.requester_id;
 
   useEffect(() => {
@@ -166,7 +190,7 @@ export default function EditTicketPage() {
                 <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                {projectsData?.data?.filter(p => p.is_active).map(p => (
+                {availableProjects.map(p => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
               </SelectContent>

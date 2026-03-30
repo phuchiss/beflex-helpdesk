@@ -53,6 +53,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/tags/:id", delete(teams::delete_tag))
         .route("/projects", get(projects::list_projects).post(projects::create_project))
         .route("/projects/:id", put(projects::update_project).delete(projects::delete_project))
+        .route("/users/:id/projects", get(projects::get_user_projects).put(projects::update_user_projects))
         .route("/dashboard/stats", get(dashboard::get_stats))
         .route("/reports", get(reports::get_report))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))

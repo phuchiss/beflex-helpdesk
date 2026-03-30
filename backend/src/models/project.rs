@@ -25,3 +25,8 @@ pub struct UpdateProjectRequest {
     pub description: Option<String>,
     pub is_active: Option<bool>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserProjectsRequest {
+    pub project_ids: Vec<Uuid>,
+}

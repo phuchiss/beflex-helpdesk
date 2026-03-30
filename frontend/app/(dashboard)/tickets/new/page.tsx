@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { getStoredUser } from '@/lib/auth';
 import type { Attachment, Category, User, Project, ApiListResponse } from '@/types';
 import { ArrowLeft, Paperclip, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,6 +44,8 @@ export default function NewTicketPage() {
     },
   });
 
+  const currentUser = typeof window !== 'undefined' ? getStoredUser() as User | null : null;
+
   const { data: projectsData } = useQuery<ApiListResponse<Project>>({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -50,6 +53,29 @@ export default function NewTicketPage() {
       return res.data;
     },
   });
+
+  const { data: userProjectsData } = useQuery<ApiListResponse<Project>>({
+    queryKey: ['user-projects', currentUser?.id],
+    queryFn: async () => {
+      const res = await api.get(`/users/${currentUser!.id}/projects`);
+      return res.data;
+    },
+    enabled: !!currentUser?.id,
+  });
+
+  const availableProjects = (() => {
+    const userProjects = userProjectsData?.data;
+    if (userProjects && userProjects.length > 0) {
+      return userProjects.filter(p => p.is_active);
+    }
+    return projectsData?.data?.filter(p => p.is_active) ?? [];
+  })();
+
+  useEffect(() => {
+    if (!projectId && availableProjects.length > 0) {
+      setProjectId(availableProjects[0].id);
+    }
+  }, [availableProjects, projectId]);
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -145,7 +171,7 @@ export default function NewTicketPage() {
                 <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                {projectsData?.data?.filter(p => p.is_active).map(p => (
+                {availableProjects.map(p => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
               </SelectContent>
