@@ -155,6 +155,19 @@ pub async fn create_ticket(
         }
     }
 
+    if let Some(attachment_ids) = &body.attachment_ids {
+        for att_id in attachment_ids {
+            sqlx::query(
+                "UPDATE attachments SET ticket_id = $2 WHERE id = $1 AND uploaded_by = $3"
+            )
+            .bind(att_id)
+            .bind(ticket.id)
+            .bind(claims.sub)
+            .execute(&state.db)
+            .await?;
+        }
+    }
+
     Ok(Json(ticket))
 }
 
