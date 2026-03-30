@@ -37,6 +37,7 @@ pub struct CreateTicketRequest {
     pub due_date: Option<DateTime<Utc>>,
     pub tag_ids: Option<Vec<Uuid>>,
     pub project_id: Option<Uuid>,
+    pub attachment_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Deserialize)]

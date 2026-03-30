@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { getStoredUser } from '@/lib/auth';
-import type { Category, User, Project, ApiListResponse } from '@/types';
-import { ArrowLeft } from 'lucide-react';
+import type { Attachment, Category, User, Project, ApiListResponse } from '@/types';
+import { ArrowLeft, Paperclip, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { MarkdownEditor } from '@/components/markdown-editor';
+import { formatFileSize } from '@/lib/utils';
 
 export default function NewTicketPage() {
   const router = useRouter();
@@ -22,7 +23,10 @@ export default function NewTicketPage() {
   const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: categoriesData } = useQuery<ApiListResponse<Category>>({
     queryKey: ['categories'],
@@ -73,6 +77,29 @@ export default function NewTicketPage() {
     }
   }, [availableProjects, projectId]);
 
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError('');
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await api.post<Attachment>('/attachments', formData);
+        setAttachments(prev => [...prev, res.data]);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      setError(msg);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim()) return;
@@ -87,6 +114,7 @@ export default function NewTicketPage() {
         category_id: categoryId || null,
         assignee_id: assigneeId || null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        attachment_ids: attachments.length > 0 ? attachments.map(a => a.id) : null,
       });
       await queryClient.invalidateQueries({ queryKey: ['tickets'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
@@ -208,6 +236,39 @@ export default function NewTicketPage() {
               />
             </div>
           </div>
+          <div>
+            <Label>Attachments</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFileUpload(e.target.files)}
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.csv"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <Paperclip className="h-4 w-4" />
+              {uploading ? 'Uploading...' : 'Attach Files'}
+            </button>
+            {attachments.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {attachments.map(att => (
+                  <div key={att.id} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+                    <span className="flex-1 truncate">{att.original_filename}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{formatFileSize(att.file_size)}</span>
+                    <button type="button" onClick={() => removeAttachment(att.id)}>
+                      <X className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
@@ -218,7 +279,7 @@ export default function NewTicketPage() {
             </button>
             <button
               type="submit"
-              disabled={submitting || !subject.trim()}
+              disabled={submitting || uploading || !subject.trim()}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
             >
               {submitting ? 'Creating...' : 'Create Ticket'}

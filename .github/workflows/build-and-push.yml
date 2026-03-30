@@ -52,6 +52,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: helpdesk.bcircle.dev
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            cd /opt/beflex-helpdesk
+            docker compose pull
+            docker compose up -d
+
   release:
     needs: build-and-push
     runs-on: ubuntu-latest
