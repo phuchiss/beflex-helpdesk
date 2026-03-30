@@ -2,6 +2,71 @@ use axum::{extract::{Extension, Path, State}, Json};
 use uuid::Uuid;
 use crate::{AppError, AppResult, AppState, models::project::*, services::auth::Claims};
 
+/// GET /users/:id/projects — ดึง projects ที่ user เลือกไว้
+pub async fn get_user_projects(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(user_id): Path<Uuid>,
+) -> AppResult<Json<serde_json::Value>> {
+    // อนุญาตให้ดูของตัวเอง หรือ admin ดูของใครก็ได้
+    if claims.role != "admin" && claims.sub != user_id {
+        return Err(AppError::Forbidden("Cannot view another user's projects".to_string()));
+    }
+    let projects = sqlx::query_as::<_, Project>(
+        "SELECT p.* FROM projects p
+         INNER JOIN user_projects up ON up.project_id = p.id
+         WHERE up.user_id = $1 AND p.is_active = true
+         ORDER BY p.name ASC"
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(serde_json::json!({ "data": projects })))
+}
+
+/// PUT /users/:id/projects — อัปเดต projects ที่ user เลือก (batch replace)
+pub async fn update_user_projects(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(user_id): Path<Uuid>,
+    Json(body): Json<UpdateUserProjectsRequest>,
+) -> AppResult<Json<serde_json::Value>> {
+    // อนุญาตให้แก้ของตัวเอง หรือ admin แก้ของใครก็ได้
+    if claims.role != "admin" && claims.sub != user_id {
+        return Err(AppError::Forbidden("Cannot update another user's projects".to_string()));
+    }
+
+    let mut tx = state.db.begin().await?;
+
+    sqlx::query("DELETE FROM user_projects WHERE user_id = $1")
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+
+    for project_id in &body.project_ids {
+        sqlx::query(
+            "INSERT INTO user_projects (user_id, project_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        )
+        .bind(user_id)
+        .bind(project_id)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+
+    let projects = sqlx::query_as::<_, Project>(
+        "SELECT p.* FROM projects p
+         INNER JOIN user_projects up ON up.project_id = p.id
+         WHERE up.user_id = $1 AND p.is_active = true
+         ORDER BY p.name ASC"
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(serde_json::json!({ "data": projects })))
+}
+
 /// GET /projects
 pub async fn list_projects(
     State(state): State<AppState>,
