@@ -69,6 +69,8 @@ pub async fn create_user(
 
     let role = body.role.as_deref().unwrap_or("agent");
 
+    let mut tx = state.db.begin().await?;
+
     let user = sqlx::query_as::<_, User>(
         "INSERT INTO users (email, name, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING *"
     )
@@ -76,8 +78,22 @@ pub async fn create_user(
     .bind(&body.name)
     .bind(&password_hash)
     .bind(role)
-    .fetch_one(&state.db)
+    .fetch_one(&mut *tx)
     .await?;
+
+    if let Some(project_ids) = &body.project_ids {
+        for project_id in project_ids {
+            sqlx::query(
+                "INSERT INTO user_projects (user_id, project_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+            )
+            .bind(user.id)
+            .bind(project_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
+    tx.commit().await?;
 
     Ok(Json(user))
 }

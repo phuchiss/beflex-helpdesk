@@ -48,6 +48,7 @@ pub struct CreateUserRequest {
     pub name: String,
     pub password: String,
     pub role: Option<String>,
+    pub project_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Deserialize)]

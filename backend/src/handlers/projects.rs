@@ -24,16 +24,15 @@ pub async fn get_user_projects(
     Ok(Json(serde_json::json!({ "data": projects })))
 }
 
-/// PUT /users/:id/projects — อัปเดต projects ที่ user เลือก (batch replace)
+/// PUT /users/:id/projects — admin-only: อัปเดต projects ของ user (batch replace)
 pub async fn update_user_projects(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(user_id): Path<Uuid>,
     Json(body): Json<UpdateUserProjectsRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // อนุญาตให้แก้ของตัวเอง หรือ admin แก้ของใครก็ได้
-    if claims.role != "admin" && claims.sub != user_id {
-        return Err(AppError::Forbidden("Cannot update another user's projects".to_string()));
+    if claims.role != "admin" {
+        return Err(AppError::Forbidden("Admin required".to_string()));
     }
 
     let mut tx = state.db.begin().await?;
