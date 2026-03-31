@@ -248,6 +248,17 @@ pub async fn update_ticket(
         .bind(body.status.as_deref())
         .execute(&state.db)
         .await?;
+
+        let related = crate::services::notification::get_ticket_related_users(&state.db, id).await;
+        let new_status = body.status.as_deref().unwrap_or("unknown");
+        crate::services::notification::notify_users(
+            &state.db,
+            &related,
+            id,
+            "ticket_status_changed",
+            &format!("สถานะ ticket \"{}\" เปลี่ยนจาก {} เป็น {}", updated.subject, old.status, new_status),
+            claims.sub,
+        ).await;
     }
 
     if body.assignee_id.is_some() && body.assignee_id != old.assignee_id {
@@ -260,6 +271,18 @@ pub async fn update_ticket(
         .bind(body.assignee_id.map(|uid| uid.to_string()))
         .execute(&state.db)
         .await?;
+
+        if let Some(new_assignee) = body.assignee_id {
+            if new_assignee != claims.sub {
+                let _ = crate::services::notification::create_notification(
+                    &state.db,
+                    new_assignee,
+                    id,
+                    "ticket_assigned",
+                    &format!("คุณได้รับมอบหมายงาน: {}", updated.subject),
+                ).await;
+            }
+        }
     }
 
     Ok(Json(updated))
@@ -315,6 +338,18 @@ pub async fn assign_ticket(
     .bind(body.assignee_id.map(|uid| uid.to_string()))
     .execute(&state.db)
     .await?;
+
+    if let Some(assignee_id) = body.assignee_id {
+        if assignee_id != claims.sub {
+            let _ = crate::services::notification::create_notification(
+                &state.db,
+                assignee_id,
+                id,
+                "ticket_assigned",
+                &format!("คุณได้รับมอบหมายงาน: {}", ticket.subject),
+            ).await;
+        }
+    }
 
     Ok(Json(ticket))
 }

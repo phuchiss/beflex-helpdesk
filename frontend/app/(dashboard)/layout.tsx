@@ -6,9 +6,10 @@ import { AuthGuard } from '@/components/auth-guard';
 import { clearTokens, getStoredUser } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  LayoutDashboard, Ticket, Mail, Settings, LogOut, Menu, X, Bell,
+  LayoutDashboard, Ticket, Mail, Settings, LogOut, Menu, X,
   Users, FolderOpen, UserCircle, ChevronDown, ChevronRight, Briefcase, BarChart3,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -168,9 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 relative">
-                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </button>
+              <NotificationBell />
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">

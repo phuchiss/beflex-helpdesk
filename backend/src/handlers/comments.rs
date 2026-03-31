@@ -91,6 +91,29 @@ pub async fn create_comment(
         .execute(&state.db)
         .await?;
 
+    let is_internal = body.is_internal.unwrap_or(false);
+    let ticket_subject = sqlx::query_scalar::<_, String>(
+        "SELECT subject FROM tickets WHERE id = $1"
+    )
+    .bind(ticket_id)
+    .fetch_optional(&state.db)
+    .await?
+    .unwrap_or_default();
+
+    let related = if is_internal {
+        crate::services::notification::get_ticket_related_staff(&state.db, ticket_id).await
+    } else {
+        crate::services::notification::get_ticket_related_users(&state.db, ticket_id).await
+    };
+    crate::services::notification::notify_users(
+        &state.db,
+        &related,
+        ticket_id,
+        "comment_added",
+        &format!("มี comment ใหม่บน ticket \"{}\"", ticket_subject),
+        claims.sub,
+    ).await;
+
     Ok(Json(serde_json::json!({
         "id": comment.id,
         "ticket_id": comment.ticket_id,
