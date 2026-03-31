@@ -11,14 +11,10 @@ use crate::{AppError, AppResult, AppState, models::user::*, services::auth::Clai
 
 pub async fn list_users(
     State(state): State<AppState>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
 ) -> AppResult<Json<serde_json::Value>> {
-    if claims.role != "admin" {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
-
     let users = sqlx::query_as::<_, User>(
-        "SELECT * FROM users ORDER BY created_at DESC"
+        "SELECT * FROM users WHERE is_active = true ORDER BY created_at DESC"
     )
     .fetch_all(&state.db)
     .await?;
