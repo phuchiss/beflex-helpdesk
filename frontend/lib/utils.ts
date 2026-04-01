@@ -48,3 +48,16 @@ export const PRIORITY_COLORS: Record<string, string> = {
   high: 'bg-orange-100 text-orange-700',
   critical: 'bg-red-100 text-red-700',
 };
+
+export function formatRelativeTime(dateString: string): string {
+  const now = Date.now();
+  const diffMs = now - new Date(dateString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}

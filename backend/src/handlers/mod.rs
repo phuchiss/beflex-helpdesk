@@ -6,6 +6,7 @@ pub mod attachments;
 pub mod comments;
 pub mod dashboard;
 pub mod email_accounts;
+pub mod notifications;
 pub mod projects;
 pub mod reports;
 pub mod teams;
@@ -54,6 +55,11 @@ pub fn create_router(state: AppState) -> Router {
         .route("/projects", get(projects::list_projects).post(projects::create_project))
         .route("/projects/:id", put(projects::update_project).delete(projects::delete_project))
         .route("/users/:id/projects", get(projects::get_user_projects).put(projects::update_user_projects))
+        .route("/notifications", get(notifications::list_notifications))
+        .route("/notifications/unread-count", get(notifications::get_unread_count))
+        .route("/notifications/read-all", put(notifications::mark_all_read))
+        .route("/notifications/:id/read", put(notifications::mark_read))
+        .route("/notifications/:id", delete(notifications::delete_notification))
         .route("/dashboard/stats", get(dashboard::get_stats))
         .route("/reports", get(reports::get_report))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))

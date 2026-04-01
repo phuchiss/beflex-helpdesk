@@ -138,6 +138,23 @@ export interface Project {
   updated_at: string;
 }
 
+export type NotificationType = 'ticket_assigned' | 'ticket_status_changed' | 'comment_added';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  ticket_id: string | null;
+  type: NotificationType;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  data: Notification[];
+  unread_count: number;
+}
+
 export interface ApiListResponse<T> {
   data: T[];
 }
