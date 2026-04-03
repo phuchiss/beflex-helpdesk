@@ -8,6 +8,7 @@ use crate::{
     AppError, AppResult, AppState,
     models::ticket::*,
     services::auth::Claims,
+    services::notification,
 };
 
 #[derive(Debug, serde::Deserialize)]
@@ -228,6 +229,36 @@ pub async fn update_ticket(
         .bind(body.status.as_deref())
         .execute(&state.db)
         .await?;
+
+        // Notify all involved users about status change
+        let actor_name = sqlx::query_scalar::<_, String>(
+            "SELECT name FROM users WHERE id = $1"
+        )
+        .bind(claims.sub)
+        .fetch_optional(&state.db)
+        .await?
+        .unwrap_or_else(|| "Someone".to_string());
+
+        let new_status = body.status.as_deref().unwrap_or(&updated.status);
+        let (subject, body_html) = notification::build_status_notification(
+            &actor_name,
+            updated.ticket_number,
+            &updated.subject,
+            &old.status,
+            new_status,
+            &state.config.app_url,
+            updated.id,
+        );
+
+        notification::send_ticket_notification(
+            state.db.clone(),
+            state.config.clone(),
+            updated.id,
+            claims.sub,
+            "status_changed".to_string(),
+            subject,
+            body_html,
+        );
     }
 
     if body.assignee_id.is_some() && body.assignee_id != old.assignee_id {
@@ -240,6 +271,44 @@ pub async fn update_ticket(
         .bind(body.assignee_id.map(|uid| uid.to_string()))
         .execute(&state.db)
         .await?;
+
+        // Notify about assignment change
+        if let Some(new_assignee_id) = body.assignee_id {
+            let actor_name = sqlx::query_scalar::<_, String>(
+                "SELECT name FROM users WHERE id = $1"
+            )
+            .bind(claims.sub)
+            .fetch_optional(&state.db)
+            .await?
+            .unwrap_or_else(|| "Someone".to_string());
+
+            let assignee_name = sqlx::query_scalar::<_, String>(
+                "SELECT name FROM users WHERE id = $1"
+            )
+            .bind(new_assignee_id)
+            .fetch_optional(&state.db)
+            .await?
+            .unwrap_or_else(|| "Unknown".to_string());
+
+            let (subject, body_html) = notification::build_assignment_notification(
+                &actor_name,
+                updated.ticket_number,
+                &updated.subject,
+                &assignee_name,
+                &state.config.app_url,
+                updated.id,
+            );
+
+            notification::send_ticket_notification(
+                state.db.clone(),
+                state.config.clone(),
+                updated.id,
+                claims.sub,
+                "assigned".to_string(),
+                subject,
+                body_html,
+            );
+        }
     }
 
     Ok(Json(updated))
@@ -295,6 +364,44 @@ pub async fn assign_ticket(
     .bind(body.assignee_id.map(|uid| uid.to_string()))
     .execute(&state.db)
     .await?;
+
+    // Notify about assignment
+    if let Some(assignee_id) = body.assignee_id {
+        let actor_name = sqlx::query_scalar::<_, String>(
+            "SELECT name FROM users WHERE id = $1"
+        )
+        .bind(claims.sub)
+        .fetch_optional(&state.db)
+        .await?
+        .unwrap_or_else(|| "Someone".to_string());
+
+        let assignee_name = sqlx::query_scalar::<_, String>(
+            "SELECT name FROM users WHERE id = $1"
+        )
+        .bind(assignee_id)
+        .fetch_optional(&state.db)
+        .await?
+        .unwrap_or_else(|| "Unknown".to_string());
+
+        let (subject, body_html) = notification::build_assignment_notification(
+            &actor_name,
+            ticket.ticket_number,
+            &ticket.subject,
+            &assignee_name,
+            &state.config.app_url,
+            ticket.id,
+        );
+
+        notification::send_ticket_notification(
+            state.db.clone(),
+            state.config.clone(),
+            ticket.id,
+            claims.sub,
+            "assigned".to_string(),
+            subject,
+            body_html,
+        );
+    }
 
     Ok(Json(ticket))
 }

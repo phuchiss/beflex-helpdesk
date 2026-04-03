@@ -7,7 +7,9 @@ use crate::{
     AppError, AppResult, AppState,
     models::comment::*,
     models::attachment::Attachment,
+    models::ticket::Ticket,
     services::auth::Claims,
+    services::notification,
 };
 
 pub async fn list_comments(
@@ -90,6 +92,45 @@ pub async fn create_comment(
         .bind(ticket_id)
         .execute(&state.db)
         .await?;
+
+    // Send email notification to all involved users (skip internal notes)
+    if !comment.is_internal {
+        let ticket = sqlx::query_as::<_, Ticket>(
+            "SELECT * FROM tickets WHERE id = $1"
+        )
+        .bind(ticket_id)
+        .fetch_optional(&state.db)
+        .await?;
+
+        if let Some(ticket) = ticket {
+            let actor_name = sqlx::query_scalar::<_, String>(
+                "SELECT name FROM users WHERE id = $1"
+            )
+            .bind(claims.sub)
+            .fetch_optional(&state.db)
+            .await?
+            .unwrap_or_else(|| "Someone".to_string());
+
+            let (subject, body) = notification::build_comment_notification(
+                &actor_name,
+                ticket.ticket_number,
+                &ticket.subject,
+                &body.content,
+                &state.config.app_url,
+                ticket.id,
+            );
+
+            notification::send_ticket_notification(
+                state.db.clone(),
+                state.config.clone(),
+                ticket.id,
+                claims.sub,
+                "comment_added".to_string(),
+                subject,
+                body,
+            );
+        }
+    }
 
     Ok(Json(serde_json::json!({
         "id": comment.id,

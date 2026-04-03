@@ -9,6 +9,9 @@ pub struct Config {
     pub smtp_port: u16,
     pub smtp_username: Option<String>,
     pub smtp_password: Option<String>,
+    pub smtp_from_email: Option<String>,
+    pub smtp_from_name: String,
+    pub app_url: String,
     pub admin_email: Option<String>,
     pub admin_password: Option<String>,
 }
@@ -34,6 +37,11 @@ impl Config {
                 .unwrap_or(587),
             smtp_username: std::env::var("SMTP_USERNAME").ok(),
             smtp_password: std::env::var("SMTP_PASSWORD").ok(),
+            smtp_from_email: std::env::var("SMTP_FROM_EMAIL").ok(),
+            smtp_from_name: std::env::var("SMTP_FROM_NAME")
+                .unwrap_or_else(|_| "BeFlex Helpdesk".to_string()),
+            app_url: std::env::var("APP_URL")
+                .unwrap_or_else(|_| "http://localhost:3000".to_string()),
             admin_email: std::env::var("ADMIN_EMAIL").ok(),
             admin_password: std::env::var("ADMIN_PASSWORD").ok(),
         })
