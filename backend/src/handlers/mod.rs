@@ -6,6 +6,7 @@ pub mod attachments;
 pub mod comments;
 pub mod dashboard;
 pub mod email_accounts;
+pub mod notifications;
 pub mod projects;
 pub mod reports;
 pub mod teams;
@@ -53,6 +54,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/tags/:id", delete(teams::delete_tag))
         .route("/projects", get(projects::list_projects).post(projects::create_project))
         .route("/projects/:id", put(projects::update_project).delete(projects::delete_project))
+        .route("/notifications", get(notifications::list_notifications))
+        .route("/notifications/read-all", put(notifications::mark_all_as_read))
+        .route("/notifications/:id/read", put(notifications::mark_as_read))
         .route("/dashboard/stats", get(dashboard::get_stats))
         .route("/reports", get(reports::get_report))
         .layer(middleware::from_fn_with_state(state.clone(), crate::middleware::auth::require_auth));
